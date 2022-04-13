@@ -117,12 +117,16 @@ void GLTexture::upload() {
 	}
 	
 	if(hasMipmaps()) {
+#ifdef GL_GENERATE_MIPMAP
 		glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
+#endif
 		if(renderer->getMaxAnisotropy() > 1.f) {
 			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, renderer->getMaxAnisotropy());
 		}
 	} else {
+#ifdef GL_TEXTURE_MAX_LEVEL
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+#endif
 	}
 	
 	// TODO handle GL_MAX_TEXTURE_SIZE
@@ -137,7 +141,11 @@ void GLTexture::upload() {
 		glTexImage2D(GL_TEXTURE_2D, 0, internal, getSize().x, getSize().y, 0, format,
 		             GL_UNSIGNED_BYTE, m_image.getData());
 	}
-	
+#ifndef GL_GENERATE_MIPMAP
+    if(hasMipmaps()) {
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+#endif
 }
 
 void GLTexture::destroy() {

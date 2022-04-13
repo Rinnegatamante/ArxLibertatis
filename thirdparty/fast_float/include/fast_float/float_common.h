@@ -44,7 +44,7 @@
 #ifdef _WIN32
 #define FASTFLOAT_IS_BIG_ENDIAN 0
 #else
-#if defined(__APPLE__) || defined(__FreeBSD__)
+#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__vita__)
 #include <machine/endian.h>
 #elif defined(sun) || defined(__sun)
 #include <sys/byteorder.h>

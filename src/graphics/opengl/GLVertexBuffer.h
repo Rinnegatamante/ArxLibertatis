@@ -64,8 +64,10 @@ inline void setVertexArray(OpenGLRenderer * renderer, const TexturedVertex * ver
 	if(renderer->hasVertexFogCoordinate()) {
 		// Use clip.w == view.z as the fog depth to match other vertex types
 		// TODO remove GL_FOG_COORDINATE_* uses once vertices are provided in view-space coordinates
+#ifdef GL_FOG_COORDINATE_ARRAY
 		glEnableClientState(GL_FOG_COORDINATE_ARRAY);
 		glFogCoordPointer(GL_FLOAT, sizeof(*vertices), &vertices->w);
+#endif
 	}
 	
 	glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(*vertices), &vertices->color);
@@ -83,7 +85,9 @@ inline void setVertexArray(OpenGLRenderer * renderer, const SMY_VERTEX * vertice
 	glVertexPointer(3, GL_FLOAT, sizeof(*vertices), &vertices->p.x);
 	
 	if(renderer->hasVertexFogCoordinate()) {
+#ifdef GL_FOG_COORDINATE_ARRAY
 		glDisableClientState(GL_FOG_COORDINATE_ARRAY);
+#endif
 	}
 	
 	glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(*vertices), &vertices->color);
@@ -101,7 +105,9 @@ inline void setVertexArray(OpenGLRenderer * renderer, const SMY_VERTEX3 * vertic
 	glVertexPointer(3, GL_FLOAT, sizeof(*vertices), &vertices->p.x);
 	
 	if(renderer->hasVertexFogCoordinate()) {
+#ifdef GL_FOG_COORDINATE_ARRAY
 		glDisableClientState(GL_FOG_COORDINATE_ARRAY);
+#endif
 	};
 	
 	glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(*vertices), &vertices->color);
@@ -174,7 +180,7 @@ public:
 		const void * data = indices;
 		
 		if(m_renderer->hasDrawElementsBaseVertex()) {
-			
+#ifndef __vita__
 			if(m_renderer->hasDrawRangeElements()) {
 				#if !ARX_HAVE_GLEW
 				glDrawRangeElementsBaseVertex(mode, 0, count - 1, nbindices, type, data, offset);
@@ -182,13 +188,13 @@ public:
 				glDrawRangeElementsBaseVertex(mode, 0, count - 1, nbindices, type, const_cast<void *>(data), offset);
 				#endif
 			} else {
-				#if !ARX_HAVE_GLEW
+				#if !ARX_HAVE_GLEW || defined(__vita__)
 				glDrawElementsBaseVertex(mode, nbindices, type, data, offset);
 				#else
 				glDrawElementsBaseVertex(mode, nbindices, type, const_cast<void *>(data), offset);
 				#endif
 			}
-			
+#endif
 		} else {
 			
 			if(offset != 0) {
@@ -210,7 +216,9 @@ public:
 			}
 			
 			if(m_renderer->hasDrawRangeElements()) {
+#ifndef __vita__
 				glDrawRangeElements(mode, offset, offset + count - 1, nbindices, type, data);
+#endif
 			} else {
 				glDrawElements(mode, nbindices, type, data);
 			}

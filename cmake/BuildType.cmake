@@ -88,7 +88,7 @@ if(MSVC)
 			string(REGEX REPLACE "/GR( |$)" "" ${flag_var} "${${flag_var}}")
 			set(${flag_var} "${${flag_var}} /GR-")
 		endforeach(flag_var)
-		list(APPEND enable_rtti /GR)
+		#list(APPEND enable_rtti /GR)
 		
 	endif()
 	
@@ -424,7 +424,7 @@ else(MSVC)
 		
 		add_cxxflag("-fno-rtti")
 		if(FLAG_FOUND)
-			list(APPEND enable_rtti "-frtti")
+			#list(APPEND enable_rtti "-frtti")
 		endif()
 		
 		if(MACOS)
@@ -455,19 +455,19 @@ else(MSVC)
 		if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 			
 			# set debug symbol level to -g3
-			check_compiler_flag(RESULT "-g3")
-			if(NOT RESULT STREQUAL "")
-				string(REGEX REPLACE "(^| )-g(|[0-9]|gdb)( |$)" "\\1" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
-				set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${RESULT}")
-			endif()
+			#check_compiler_flag(RESULT "-g3")
+			#if(NOT RESULT STREQUAL "")
+			#	string(REGEX REPLACE "(^| )-g(|[0-9]|gdb)( |$)" "\\1" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+			#	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${RESULT}")
+			#endif()
 			
 			# disable optimizations
-			check_compiler_flag(RESULT "-Og")
-			if(NOT RESULT)
-				check_compiler_flag(RESULT "-O0")
-			endif()
-			string(REGEX REPLACE "(^| )-O[0-9g]( |$)" "\\1" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
-			set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${RESULT}")
+			#check_compiler_flag(RESULT "-Og")
+			#if(NOT RESULT)
+			#	check_compiler_flag(RESULT "-O0")
+			#endif()
+			#string(REGEX REPLACE "(^| )-O[0-9g]( |$)" "\\1" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+			#set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${RESULT}")
 			
 		elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
 			
@@ -483,6 +483,8 @@ else(MSVC)
 	endif(SET_OPTIMIZATION_FLAGS)
 	
 endif(MSVC)
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-optimize-sibling-calls -g -O2")
 
 set(BUILD_TYPES ${CMAKE_CONFIGURATION_TYPES} ${CMAKE_BUILD_TYPE})
 list(REMOVE_DUPLICATES BUILD_TYPES)

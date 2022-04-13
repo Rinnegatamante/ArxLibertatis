@@ -345,7 +345,7 @@ std::vector<path> SystemPaths::getSearchPaths(bool filter) const {
 SystemPaths::InitParams cmdLineInitParams;
 
 ExitStatus SystemPaths::init(const InitParams & initParams) {
-	
+#ifndef __vita__
 	m_userDir = findUserPath("user", initParams.forceUser, "UserDir", platform::UserDirPrefixes,
 	                         user_dir_prefixes, user_dir, current_path(), !initParams.displaySearchDirs);
 	
@@ -357,7 +357,13 @@ ExitStatus SystemPaths::init(const InitParams & initParams) {
 	m_findDataDirs = initParams.findData;
 	
 	m_dataDirs = getSearchPaths(true);
-	
+#else
+    m_userDir = path("ux0:/data/arx/user");
+    m_configDir = path("ux0:/data/arx/data");
+    m_dataDirs.push_back(path("ux0:/data/arx/data"));
+    m_findDataDirs = true;
+    m_additionalDataDirs = m_dataDirs;
+#endif
 	if(initParams.displaySearchDirs) {
 		list(std::cout, " - --user-dir (-u) command-line parameter\n",
 		                " - --config-dir (-c) command-line parameter\n",

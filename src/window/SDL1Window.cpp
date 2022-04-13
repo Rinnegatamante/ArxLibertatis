@@ -17,6 +17,7 @@
  * along with Arx Libertatis.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+
 #include "window/SDL1Window.h"
 
 #include <algorithm>
@@ -68,10 +69,15 @@ bool SDL1Window::initializeFramework() {
 	                             "." ARX_STR(SDL_PATCHLEVEL);
 	CrashHandler::setVariable("SDL version (headers)", headerVersion);
 	
-	if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_NOPARACHUTE) < 0) {
+	if(SDL_Init(SDL_INIT_NOPARACHUTE) < 0) {
 		LogError << "Failed to initialize SDL: " << SDL_GetError();
 		return false;
 	}
+
+#ifdef __vita__
+	//vglInitExtended(0, 960, 544, 2 * 1024 * 1024, SCE_GXM_MULTISAMPLE_4X);
+    vglInitWithCustomThreshold(0, 960, 544, 12 * 1024 * 1024, 0, 0, 0, SCE_GXM_MULTISAMPLE_4X);
+#endif
 	
 	const SDL_version * ver = SDL_Linked_Version();
 	std::ostringstream runtimeVersion;
@@ -80,10 +86,11 @@ bool SDL1Window::initializeFramework() {
 	CrashHandler::setVariable("SDL version (runtime)", runtimeVersion.str());
 	credits::setLibraryCredits("windowing", "SDL " + runtimeVersion.str());
 	
-	const SDL_VideoInfo * vid = SDL_GetVideoInfo();
-	m_desktopMode.resolution.x = vid->current_w;
-	m_desktopMode.resolution.y = vid->current_h;
-	
+	//const SDL_VideoInfo * vid = SDL_GetVideoInfo();
+	m_desktopMode.resolution.x = 960;
+	m_desktopMode.resolution.y = 544;
+
+#ifndef __vita__
 	u32 flags = SDL_FULLSCREEN | SDL_ANYFORMAT | SDL_OPENGL | SDL_HWSURFACE;
 	SDL_Rect ** modes = SDL_ListModes(nullptr, flags);
 	if(modes == reinterpret_cast<SDL_Rect **>(-1)) {
@@ -137,6 +144,9 @@ bool SDL1Window::initializeFramework() {
 	} else {
 		return false;
 	}
+#else
+    m_displayModes.push_back(Vec2i(960, 544));
+#endif
 	
 	std::sort(m_displayModes.begin(), m_displayModes.end());
 	m_displayModes.erase(std::unique(m_displayModes.begin(), m_displayModes.end()),
@@ -159,10 +169,11 @@ bool SDL1Window::initializeFramework() {
 bool SDL1Window::initialize() {
 	
 	arx_assert(!m_displayModes.empty());
-	
+
+#ifndef __vita__
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
-	
+#endif
 	
 #if ARX_PLATFORM == ARX_PLATFORM_WIN32
 	// Used on Windows to prevent software opengl fallback.
@@ -178,10 +189,13 @@ bool SDL1Window::initialize() {
 	// drivers - only enable it for new enough SDL versions.
 	const SDL_version * ver = SDL_Linked_Version();
 	if(SDL_VERSIONNUM(ver->major, ver->minor, ver->patch) >= SDL_VERSIONNUM(1, 2, 15)) {
+#ifndef __vita__
 		SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
+#endif
 	}
 #endif
-	
+
+#ifndef __vita__
 	SDL_GL_SetAttribute(SDL_GL_SWAP_CONTROL, m_vsync);
 	
 	for(int msaa = m_maxMSAALevel; msaa > 0; msaa--) {
@@ -236,6 +250,7 @@ bool SDL1Window::initialize() {
 		        << " depth:" << depth << " aa:" << msaa << "x doublebuffer:" << doublebuffer;
 		break;
 	}
+#endif
 	
 	m_initialized = true;
 	
@@ -275,14 +290,14 @@ bool SDL1Window::setVSync(int vsync) {
 
 void SDL1Window::restoreGamma() {
 	if(m_gammaOverridden) {
-		SDL_SetGamma(1.f, 1.f, 1.f);
-		SDL_SetGammaRamp(m_gammaRed, m_gammaGreen, m_gammaBlue);
+		//SDL_SetGamma(1.f, 1.f, 1.f);
+		//SDL_SetGammaRamp(m_gammaRed, m_gammaGreen, m_gammaBlue);
 		m_gammaOverridden = false;
 	}
 }
 
 bool SDL1Window::setGamma(float gamma) {
-	if(m_initialized && m_fullscreen) {
+	/*if(m_initialized && m_fullscreen) {
 		if(!m_gammaOverridden) {
 			m_gammaOverridden = (SDL_GetGammaRamp(m_gammaRed, m_gammaGreen, m_gammaBlue) == 0);
 		}
@@ -290,7 +305,7 @@ bool SDL1Window::setGamma(float gamma) {
 			return false;
 		}
 	}
-	m_gamma = gamma;
+	m_gamma = gamma;*/
 	return true;
 }
 
@@ -350,8 +365,8 @@ void SDL1Window::updateSize(bool force) {
 	
 	Vec2i oldSize = m_mode.resolution;
 	
-	const SDL_VideoInfo * vid = SDL_GetVideoInfo();
-	m_mode.resolution = Vec2i(vid->current_w, vid->current_h);
+	//const SDL_VideoInfo * vid = SDL_GetVideoInfo();
+	m_mode.resolution = Vec2i(960, 544);
 	
 	if(force || m_mode.resolution != oldSize) {
 		m_renderer->afterResize();
@@ -464,7 +479,11 @@ void SDL1Window::processEvents(bool waitForEvent) {
 }
 
 void SDL1Window::showFrame() {
+#ifndef __vita__
 	SDL_GL_SwapBuffers();
+#else
+    vglSwapBuffers(GL_FALSE);
+#endif
 }
 
 void SDL1Window::hide() {

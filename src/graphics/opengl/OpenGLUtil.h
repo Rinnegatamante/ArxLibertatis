@@ -37,7 +37,22 @@
 #if ARX_HAVE_EPOXY
 #include <epoxy/gl.h>
 #elif ARX_HAVE_GLEW
+#ifdef __vita__
+#include "vitaGL.h"
+
+#define GL_INTENSITY8 GL_INTENSITY
+#define GL_LUMINANCE8 GL_LUMINANCE
+#define GL_ALPHA8 GL_ALPHA
+#define GL_LUMINANCE8_ALPHA8 GL_LUMINANCE_ALPHA
+#define GL_RGB8 GL_RGB
+#define GL_RGBA8 GL_RGBA
+#define GL_SOURCE0_RGB GL_SRC0_RGB
+#define GL_SOURCE0_ALPHA GL_SRC0_ALPHA
+
+
+#else
 #include <GL/glew.h>
+#endif
 #else
 #error "OpenGL renderer not supported: need ARX_HAVE_EPOXY or ARX_HAVE_GLEW"
 #endif

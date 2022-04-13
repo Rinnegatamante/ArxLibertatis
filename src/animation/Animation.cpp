@@ -236,7 +236,7 @@ static EERIE_ANIM * TheaToEerie(const char * adr, size_t size, const res::path &
 
 	(void)size; // TODO use size
 
-	LogDebug("Loading animation file " << file);
+	//LogDebug("Loading animation file " << file);
 
 	size_t pos = 0;
 	
@@ -249,10 +249,10 @@ static EERIE_ANIM * TheaToEerie(const char * adr, size_t size, const res::path &
 	
 	EERIE_ANIM * eerie = new EERIE_ANIM();
 	
-	LogDebug("TEA header size: " << sizeof(THEA_HEADER));
-	LogDebug("Identity " << th->identity);
-	LogDebug("Version - " << th->version << "  Frames " << th->nb_frames
-	         << "  Groups " << th->nb_groups << "  KeyFrames " << th->nb_key_frames);
+////LogDebug("TEA header size: " << sizeof(THEA_HEADER));
+////LogDebug("Identity " << th->identity);
+////LogDebug("Version - " << th->version << "  Frames " << th->nb_frames
+////         << "  Groups " << th->nb_groups << "  KeyFrames " << th->nb_key_frames);
 	
 	size_t keyFrames = size_t(th->nb_key_frames);
 	size_t groupCount = size_t(th->nb_groups);
@@ -266,16 +266,16 @@ static EERIE_ANIM * TheaToEerie(const char * adr, size_t size, const res::path &
 
 	// Go For Keyframes read
 	for(size_t i = 0; i < keyFrames; i++) {
-		LogDebug("Loading keyframe " << i);
+//		LogDebug("Loading keyframe " << i);
 
 		THEA_KEYFRAME_2015 kf2015;
 		const THEA_KEYFRAME_2015 * tkf2015;
 		if(th->version >= 2015) {
-			LogDebug(" New keyframe version THEA_KEYFRAME_2015:" << sizeof(THEA_KEYFRAME_2015));
+//			LogDebug(" New keyframe version THEA_KEYFRAME_2015:" << sizeof(THEA_KEYFRAME_2015));
 			tkf2015 = reinterpret_cast<const THEA_KEYFRAME_2015 *>(adr + pos);
 			pos += sizeof(THEA_KEYFRAME_2015);
 		} else {
-			LogDebug(" Old keyframe version THEA_KEYFRAME_2014:" << sizeof(THEA_KEYFRAME_2014));
+//			LogDebug(" Old keyframe version THEA_KEYFRAME_2014:" << sizeof(THEA_KEYFRAME_2014));
 			const THEA_KEYFRAME_2014 * tkf = reinterpret_cast<const THEA_KEYFRAME_2014 *>(adr + pos);
 			pos += sizeof(THEA_KEYFRAME_2014);
 			memset(&kf2015, 0, sizeof(THEA_KEYFRAME_2015));
@@ -300,19 +300,19 @@ static EERIE_ANIM * TheaToEerie(const char * adr, size_t size, const res::path &
 		arx_assert(tkf2015->flag_frame == -1 || tkf2015->flag_frame == 9);
 		eerie->frames[i].stepSound = (tkf2015->flag_frame == 9);
 		
-		LogDebug(" pos " << pos << " - NumFr " << eerie->frames[i].num_frame
-		         << " MKF " << tkf2015->master_key_frame << " THEA_KEYFRAME " << sizeof(THEA_KEYFRAME_2014)
-		         << " TIME " << toS(eerie->frames[i].time) << "s -Move " << tkf2015->key_move
-		         << " Orient " << tkf2015->key_orient << " Morph " << tkf2015->key_morph);
+//		LogDebug(" pos " << pos << " - NumFr " << eerie->frames[i].num_frame
+//		         << " MKF " << tkf2015->master_key_frame << " THEA_KEYFRAME " << sizeof(THEA_KEYFRAME_2014)
+//		         << " TIME " << toS(eerie->frames[i].time) << "s -Move " << tkf2015->key_move
+//		         << " Orient " << tkf2015->key_orient << " Morph " << tkf2015->key_morph);
 		
 		// Is There a Global translation ?
 		if(tkf2015->key_move != 0) {
 
 			const THEA_KEYMOVE * tkm = reinterpret_cast<const THEA_KEYMOVE *>(adr + pos);
 			pos += sizeof(THEA_KEYMOVE);
-			
-			LogDebug(" -> move x " << tkm->x << " y " << tkm->y << " z " << tkm->z
-			         << " THEA_KEYMOVE:" << sizeof(THEA_KEYMOVE));
+
+//			LogDebug(" -> move x " << tkm->x << " y " << tkm->y << " z " << tkm->z
+//			         << " THEA_KEYMOVE:" << sizeof(THEA_KEYMOVE));
 			
 			eerie->frames[i].translate = tkm->toVec3();
 		}
@@ -323,10 +323,10 @@ static EERIE_ANIM * TheaToEerie(const char * adr, size_t size, const res::path &
 
 			const ArxQuat * quat = reinterpret_cast<const ArxQuat *>(adr + pos);
 			pos += sizeof(ArxQuat);
-			
-			LogDebug(" -> rotate x " << quat->x << " y " << quat->y << " z " << quat->z
-			         << " w " << quat->w << " ArxQuat:" << sizeof(ArxQuat));
-			
+
+//			LogDebug(" -> rotate x " << quat->x << " y " << quat->y << " z " << quat->z
+//			         << " w " << quat->w << " ArxQuat:" << sizeof(ArxQuat));
+
 			eerie->frames[i].quat = *quat;
 		}
 
@@ -351,7 +351,7 @@ static EERIE_ANIM * TheaToEerie(const char * adr, size_t size, const res::path &
 		// Now Read Sound Data included in this frame
 		s32 num_sample = *reinterpret_cast<const s32 *>(adr + pos);
 		pos += sizeof(s32);
-		LogDebug(" -> num_sample " << num_sample << " s32:" << sizeof(s32));
+//		LogDebug(" -> num_sample " << num_sample << " s32:" << sizeof(s32));
 
 		eerie->frames[i].sample = audio::SampleHandle();
 		if(num_sample != -1) {
@@ -360,8 +360,8 @@ static EERIE_ANIM * TheaToEerie(const char * adr, size_t size, const res::path &
 			pos += sizeof(THEA_SAMPLE);
 			pos += ts->sample_size;
 			
-			LogDebug(" -> sample " << ts->sample_name << " size " << ts->sample_size
-			         << " THEA_SAMPLE:" << sizeof(THEA_SAMPLE));
+//			LogDebug(" -> sample " << ts->sample_name << " size " << ts->sample_size
+//			         << " THEA_SAMPLE:" << sizeof(THEA_SAMPLE));
 			
 			eerie->frames[i].sample = ARX_SOUND_Load(res::path::load(util::loadString(ts->sample_name)));
 		}
@@ -453,7 +453,7 @@ static EERIE_ANIM * TheaToEerie(const char * adr, size_t size, const res::path &
 		eerie->anim_time = 1ms;
 	}
 
-	LogDebug("Finished Conversion TEA -> EERIE - " << toS(eerie->anim_time) << " seconds");
+//	LogDebug("Finished Conversion TEA -> EERIE - " << toS(eerie->anim_time) << " seconds");
 
 	return eerie;
 }

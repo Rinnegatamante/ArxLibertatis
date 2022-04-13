@@ -53,7 +53,8 @@ OpenGLInfo::OpenGLInfo()
 	#if ARX_HAVE_EPOXY
 	m_isES = !epoxy_is_desktop_gl();
 	m_version = epoxy_gl_version();
-	#elif ARX_HAVE_GLEW
+    #elif ARX_HAVE_GLEW
+    #ifndef __vita__
 	if(glewIsSupported("GL_VERSION_4_4")) {
 		m_version = 44;
 	} else if(glewIsSupported("GL_VERSION_4_3")) {
@@ -79,6 +80,9 @@ OpenGLInfo::OpenGLInfo()
 	} else if(glewIsSupported("GL_VERSION_1_4")) {
 		m_version = 14;
 	}
+    #else
+    m_version = 14;
+    #endif
 	#endif
 	
 	m_versionString = reinterpret_cast<const char *>(glGetString(GL_VERSION));
@@ -179,8 +183,10 @@ bool OpenGLInfo::has(const char * extension, u32 version) const {
 	if(m_version < version) {
 		#if ARX_HAVE_EPOXY
 		bool supported = epoxy_has_gl_extension(extension);
-		#elif ARX_HAVE_GLEW
+		#elif ARX_HAVE_GLEW && !defined(__vita__)
 		bool supported = glewIsSupported(extension);
+        #else
+        bool supported = true;
 		#endif
 		if(!supported) {
 			return false;

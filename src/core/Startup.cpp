@@ -77,9 +77,25 @@
 	#undef main /* in case SDL.h was already included */
 #endif
 
+#ifdef __vita__
+unsigned int _newlib_heap_size_user = 225 * 1024 * 1024;
+#include <psp2/power.h>
+#include <psp2/sysmodule.h>
+#endif
+
 int utf8_main(int argc, char ** argv) {
-	
-	// GCC -ffast-math disables denormal before main() - do the same for other compilers
+
+#ifdef __vita__
+    //sceSysmoduleLoadModule((SceSysmoduleModuleId)9);
+
+    scePowerSetArmClockFrequency(444);
+    scePowerSetBusClockFrequency(222);
+    scePowerSetGpuClockFrequency(222);
+    scePowerSetGpuXbarClockFrequency(166);
+#endif
+
+
+    // GCC -ffast-math disables denormal before main() - do the same for other compilers
 	Thread::disableFloatDenormals();
 	
 	// Initialize Random now so that the crash handler can use it
@@ -87,13 +103,13 @@ int utf8_main(int argc, char ** argv) {
 	
 	// Initialize the crash handler
 	{
-		CrashHandler::initialize(argc, argv);
+		CrashHandler::initialize(1, nullptr);
 		std::string command_line;
-		for(int i = 1; i < argc; i++) {
-			command_line += util::escapeString(argv[i]);
-			command_line += ' ';
-		}
-		CrashHandler::setVariable("Command line", command_line);
+		//for(int i = 1; i < argc; i++) {
+		//	command_line += util::escapeString(argv[i]);
+		//	command_line += ' ';
+		//}
+		CrashHandler::setVariable("Command line", "");
 	}
 	
 	{
@@ -134,7 +150,7 @@ int utf8_main(int argc, char ** argv) {
 	Logger::add(new logger::CriticalErrorDialog);
 	
 	// Parse the command line and process options
-	ExitStatus status = parseCommandLine(argc, argv);
+	ExitStatus status = ExitStatus::RunProgram;
 	
 	benchmark::begin(benchmark::Startup);
 	

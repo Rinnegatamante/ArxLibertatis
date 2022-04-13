@@ -184,9 +184,11 @@ void GLTextureStage::setMipMapLODBias(float bias) {
 	if(mStage != 0) {
 		glActiveTexture(GL_TEXTURE0 + mStage);
 	}
-	
+
+#ifdef GL_TEXTURE_FILTER_CONTROL
 	glTexEnvf(GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, bias);
-	
+#endif
+
 	if(mStage != 0) {
 		glActiveTexture(GL_TEXTURE0);
 	}

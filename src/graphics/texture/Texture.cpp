@@ -22,7 +22,7 @@
 #include "core/Config.h"
 
 bool Texture::create(const res::path & filename, TextureFlags flags) {
-	
+
 	m_filename = filename;
 	m_flags = flags;
 	
@@ -51,25 +51,25 @@ bool Texture::create(size_t width, size_t height, Image::Format format) {
 }
 
 bool Texture::restore() {
-	
+
 	bool restored = false;
 	
 	if(!getFileName().empty()) {
-		
+
 		m_image.load(getFileName());
-		
+
 		if(m_image.isValid() && (m_flags & ApplyColorKey) && !m_image.hasAlpha()) {
 			m_image.applyColorKeyToAlpha(Color::black, config.video.colorkeyAntialiasing);
 		}
-		
+
 		if(m_image.isValid() && isIntensity()) {
 			m_image.toGrayscale();
 		}
 		
 	}
-	
+
 	if(m_image.isValid()) {
-		
+
 		m_format = m_image.getFormat();
 		m_size = Vec2i(s32(m_image.getWidth()), s32(m_image.getHeight()));
 		
@@ -79,12 +79,12 @@ bool Texture::restore() {
 			upload();
 			restored = true;
 		}
-		
+
 	}
-	
+
 	if(!getFileName().empty()) {
 		m_image.reset();
 	}
-	
+
 	return restored;
 }

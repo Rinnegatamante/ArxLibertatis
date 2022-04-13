@@ -97,7 +97,7 @@ void OpenGLRenderer::initialize() {
 	epoxy_handle_external_wglMakeCurrent();
 	#endif
 	
-	#elif ARX_HAVE_GLEW
+	#elif ARX_HAVE_GLEW && !defined(__vita__)
 	
 	if(glewInit() != GLEW_OK) {
 		LogError << "GLEW init failed";
@@ -196,7 +196,7 @@ void OpenGLRenderer::initialize() {
 		std::ostringstream oss;
 		#if ARX_HAVE_EPOXY
 		oss << "libepoxy\n";
-		#elif ARX_HAVE_GLEW
+		#elif ARX_HAVE_GLEW && !defined(__vita__)
 		oss << "GLEW " << glewVersion << '\n';
 		#endif
 		const char * start = gl.versionString();
@@ -271,6 +271,11 @@ void OpenGLRenderer::initialize() {
 		}
 		m_hasDrawRangeElements = true; // Introduced in OpenGL 1.2
 	}
+
+#ifdef __vita__
+    m_hasDrawElementsBaseVertex = false;
+    m_hasDrawRangeElements = false;
+#endif
 	
 	if(gl.isES()) {
 		// EXT_map_buffer_range requires OpenGL ES 1.1
@@ -309,6 +314,10 @@ void OpenGLRenderer::initialize() {
 	
 	// Introduced in OpenGL 1.4, no extension available for OpenGL ES
 	m_hasVertexFogCoordinate = !gl.isES();
+#ifdef __vita__
+    m_hasVertexFogCoordinate = false;
+#endif
+
 	
 	if(gl.isES()) {
 		m_hasSampleShading = gl.has("GL_OES_sample_shading", 3, 2);
@@ -370,6 +379,7 @@ void OpenGLRenderer::reinit() {
 	// Synchronize GL state cache
 	
 	m_MSAALevel = 0;
+#ifndef __vita__
 	{
 		GLint buffers = 0;
 		glGetIntegerv(GL_SAMPLE_BUFFERS, &buffers);
@@ -382,6 +392,7 @@ void OpenGLRenderer::reinit() {
 	if(m_MSAALevel > 0) {
 		glDisable(GL_MULTISAMPLE);
 	}
+#endif
 	m_hasMSAA = false;
 	
 	m_glstate.setCull(false);
@@ -394,7 +405,9 @@ void OpenGLRenderer::reinit() {
 		glFogi(GL_FOG_MODE, GL_LINEAR);
 		if(m_hasFogDistanceMode) {
 			// TODO Support radial fogs once all vertices are provided in view-space coordinates
+#ifndef __vita__
 			glFogi(GL_FOG_DISTANCE_MODE_NV, GL_EYE_PLANE);
+#endif
 		}
 	}
 	m_glstate.setFog(false);
@@ -428,9 +441,11 @@ void OpenGLRenderer::reinit() {
 	m_glstate.setBlend(BlendZero, BlendOne);
 	m_glblendSrc = GL_ONE;
 	m_glblendDst = GL_ZERO;
-	
+
+#ifndef __vita__
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	glPixelStorei(GL_PACK_ALIGNMENT, 1);
+#endif
 	
 	// number of conventional fixed-function texture units
 	GLint texunits = 0;
@@ -482,10 +497,12 @@ void OpenGLRenderer::enableTransform() {
 		
 	glMatrixMode(GL_PROJECTION);
 	glLoadMatrixf(glm::value_ptr(m_projection));
-	
+
+#ifndef __vita__
 	if(hasVertexFogCoordinate()) {
 		glFogi(GL_FOG_COORDINATE_SOURCE, GL_FRAGMENT_DEPTH);
 	}
+#endif
 	
 	m_currentTransform = GL_ModelViewProjectionTransform;
 }
@@ -511,10 +528,12 @@ void OpenGLRenderer::disableTransform() {
 	
 	// Change pixel origins
 	glTranslatef(0.5f, 0.5f, 0.f);
-	
+
+#ifndef __vita__
 	if(hasVertexFogCoordinate()) {
 		glFogi(GL_FOG_COORDINATE_SOURCE, GL_FOG_COORDINATE);
 	}
+#endif
 	
 	m_currentTransform = GL_NoTransform;
 }
@@ -705,11 +724,13 @@ void OpenGLRenderer::SetAntialiasing(bool enable) {
 	}
 	
 	// This is mostly useless as multisampling must be enabled/disabled at GL context creation.
+#ifndef __vita__
 	if(enable) {
 		glEnable(GL_MULTISAMPLE);
 	} else {
 		glDisable(GL_MULTISAMPLE);
 	}
+#endif
 	m_hasMSAA = enable;
 }
 
@@ -855,7 +876,9 @@ void OpenGLRenderer::drawIndexed(Primitive primitive, const TexturedVertex * ver
 	setVertexArray(this, vertices, vertices);
 	
 	if(hasDrawRangeElements()) {
+#ifndef __vita__
 		glDrawRangeElements(arxToGlPrimitiveType[primitive], 0, nvertices - 1, nindices, GL_UNSIGNED_SHORT, indices);
+#endif
 	} else {
 		glDrawElements(arxToGlPrimitiveType[primitive], nindices, GL_UNSIGNED_SHORT, indices);
 	}
@@ -959,7 +982,8 @@ void OpenGLRenderer::flushState() {
 					alphaTest = useSS ? TestSS : TestStrict;
 				}
 			}
-			
+
+#ifndef __vita__
 			if(m_glsampleShading && alphaTest != TestSS) {
 				glDisable(GL_SAMPLE_SHADING_ARB);
 				m_glsampleShading = false;
@@ -967,7 +991,11 @@ void OpenGLRenderer::flushState() {
 				glEnable(GL_SAMPLE_SHADING_ARB);
 				m_glsampleShading = true;
 			}
-			
+#else
+            m_glsampleShading = false;
+#endif
+
+#ifndef __vita__
 			if(m_glalphaToCoverage && alphaTest != TestA2C) {
 				glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
 				m_glalphaToCoverage = false;
@@ -975,6 +1003,9 @@ void OpenGLRenderer::flushState() {
 				glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
 				m_glalphaToCoverage = true;
 			}
+#else
+            m_glalphaToCoverage = false;
+#endif
 			
 			if(alphaTest == TestNone) {
 				if(m_glalphaFunc >= 0.f) {

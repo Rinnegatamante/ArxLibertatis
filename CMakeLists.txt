@@ -261,6 +261,9 @@ else()
 		CACHE STRING "Executable locations that should not be used as a data dir"
 	)
 endif()
+
+set(USER_DIR "ux0:/data/arx" CACHE STRING "User dir names")
+
 set(RUNTIME_DATADIR "." CACHE STRING "Data dir paths relative to the executable")
 mark_as_advanced(
 	DATA_DIR
@@ -305,6 +308,10 @@ include(UseStaticLibs)
 set(ARX_LIBRARIES)
 set(BASE_LIBRARIES)
 
+list(APPEND ARX_LIBRARIES vitaGL vitashark mathneon SceCommonDialog_stub SceAudioIn_stub SceAudio_stub SceLibKernel_stub SceShaccCg_stub
+		SceNet_stub SceNetCtl_stub SceDisplay_stub SceGxm_stub SceHid_stub SceSysmodule_stub SceCtrl_stub SceTouch_stub
+		SceMotion_stub m SceAppMgr_stub SceAppUtil_stub ScePgf_stub jpeg SceRtc_stub ScePower_stub SceKernelDmacMgr_stub)
+
 # Force re-checking libraries if the compiler or compiler flags change
 if((NOT LAST_CMAKE_CXX_FLAGS STREQUAL CMAKE_CXX_FLAGS)
    OR (NOT LAST_CMAKE_CXX_COMPILER STREQUAL CMAKE_CXX_COMPILER))
@@ -314,7 +321,7 @@ if((NOT LAST_CMAKE_CXX_FLAGS STREQUAL CMAKE_CXX_FLAGS)
 	force_recheck_library(OpenAL)
 	force_recheck_library(OpenGL)
 	force_recheck_library(Epoxy)
-	force_recheck_library(GLEW)
+	#force_recheck_library(GLEW)
 	force_recheck_library(Boost)
 	force_recheck_library(QtCore)
 	force_recheck_library(QtConcurrent)
@@ -446,18 +453,19 @@ if(USE_OPENGL)
 		endif()
 	endif()
 	if(NOT ARX_HAVE_OPENGL AND (WITH_OPENGL STREQUAL "" OR WITH_OPENGL STREQUAL "glew"))
-		find_package(OpenGL ${OPTIONAL_DEPENDENCY})
-		find_package(GLEW 1.5.2 ${OPTIONAL_DEPENDENCY})
+		#find_package(VitaGL ${OPTIONAL_DEPENDENCY})
+		#find_package(GLEW 1.5.2 ${OPTIONAL_DEPENDENCY})
 		list(APPEND GLEW_DEFINITIONS -DGLEW_NO_GLU)
-		if(OPENGL_FOUND AND GLEW_FOUND)
-			if(NOT MSVC)
-				check_link_library(OpenGL OPENGL_gl_LIBRARY)
-				check_link_library(GLEW GLEW_LIBRARIES)
-			endif()
+		set(OPENGL_gl_LIBRARY VitaGL)
+		#if(OPENGL_FOUND)
+		#	if(NOT MSVC)
+		#		check_link_library(VitaGL VITAGL_gl_LIBRARY)
+		#		#check_link_library(GLEW GLEW_LIBRARIES)
+		#	endif()
 			set(ARX_HAVE_GLEW 1)
 			set(ARX_HAVE_OPENGL 1)
 			set(ARX_HAVE_GL_STATIC ${GLEW_USE_STATIC_LIBS})
-		endif()
+		#endif()
 	endif()
 endif()
 
@@ -630,7 +638,7 @@ if(ARX_HAVE_SDL AND ARX_HAVE_OPENGL AND NOT WIN32 AND NOT APPLE AND NOT HAIKU)
 		if(EPOXY_FOUND)
 			check_include_files("epoxy/egl.h" ARX_HAVE_EGL)
 		else()
-			check_include_files("GL/eglew.h" ARX_HAVE_EGL)
+			#check_include_files("GL/eglew.h" ARX_HAVE_EGL)
 		endif()
 	endif()
 	set(CMAKE_REQUIRED_INCLUDES ${old_CMAKE_REQUIRED_INCLUDES})
@@ -751,8 +759,10 @@ else(MSVC)
 	check_symbol_exists(getrusage "sys/resource.h" ARX_HAVE_GETRUSAGE)
 	
 	check_symbol_exists(getexecname "stdlib.h" ARX_HAVE_GETEXECNAME)
-	check_symbol_exists(setenv "stdlib.h" ARX_HAVE_SETENV)
-	check_symbol_exists(unsetenv "stdlib.h" ARX_HAVE_UNSETENV)
+	#check_symbol_exists(setenv "stdlib.h" ARX_HAVE_SETENV)
+	#check_symbol_exists(unsetenv "stdlib.h" ARX_HAVE_UNSETENV)
+	set(ARX_HAVE_SETENV "")
+	set(ARX_HAVE_UNSETENV "")
 	
 	check_symbol_exists(__get_cpuid "cpuid.h" ARX_HAVE_GET_CPUID)
 	if(ARX_HAVE_GET_CPUID)
@@ -769,9 +779,11 @@ else(MSVC)
 		find_library(LIBRT_LIBRARY rt)
 	endif()
 	
-	check_symbol_exists(open "fcntl.h" ARX_HAVE_OPEN)
-	check_symbol_exists(O_CLOEXEC "fcntl.h" ARX_HAVE_O_CLOEXEC)
+	#check_symbol_exists(open "fcntl.h" ARX_HAVE_OPEN)
+	#check_symbol_exists(O_CLOEXEC "fcntl.h" ARX_HAVE_O_CLOEXEC)
 	check_symbol_exists(fcntl "fcntl.h" ARX_HAVE_FCNTL)
+	set(ARX_HAVE_OPEN "")
+	set(ARX_HAVE_O_CLOEXEC "")
 	
 	check_symbol_exists(chdir "unistd.h" ARX_HAVE_CHDIR)
 	check_symbol_exists(fork "unistd.h" ARX_HAVE_FORK)
@@ -797,7 +809,8 @@ else(MSVC)
 	
 	check_symbol_exists(sched_getscheduler "sched.h" ARX_HAVE_SCHED_GETSCHEDULER)
 	
-	check_symbol_exists(kill "signal.h" ARX_HAVE_KILL)
+	#check_symbol_exists(kill "signal.h" ARX_HAVE_KILL)
+	set(ARX_HAVE_KILL "")
 	
 	check_symbol_exists(backtrace "execinfo.h" ARX_HAVE_BACKTRACE)
 	
@@ -843,7 +856,7 @@ else(MSVC)
 	if(USE_NATIVE_FS AND NOT WIN32)
 		
 		# Whether multiple cuncurrent readdir calls with *different* directory streams are threadsafe
-		set(READDIR_IS_THREADSAFE 0)
+		set(READDIR_IS_THREADSAFE 1)
 		if(HAVE_GLIBC)
 			# TODO Find a more portable check for this - from the glibc documentation:
 			# POSIX-1.2008 does not guarantee that readdir is thread-safe, even when access to the same
@@ -1299,9 +1312,9 @@ if(ARX_HAVE_OPENGL)
 		list(APPEND ARX_LIBRARIES ${Epoxy_LIBRARIES})
 		include_directories(SYSTEM ${Epoxy_INCLUDE_DIR})
 	else()
-		list(APPEND ARX_LIBRARIES ${GLEW_LIBRARIES} ${OPENGL_gl_LIBRARY})
-		include_directories(SYSTEM ${OPENGL_INCLUDE_DIR} ${GLEW_INCLUDE_DIR})
-		add_definitions(${GLEW_DEFINITIONS})
+		list(APPEND ARX_LIBRARIES ${OPENGL_gl_LIBRARY})
+		include_directories(SYSTEM ${OPENGL_INCLUDE_DIR})
+		#add_definitions(${GLEW_DEFINITIONS})
 	endif()
 else()
 	# SDL backends require OpenGL
@@ -2087,3 +2100,15 @@ if(ARX_HAVE_SDL AND ARX_HAVE_OPENGL AND NOT WIN32 AND NOT APPLE AND NOT HAIKU)
 		message(${severity} "SDL is configured with Wayland support but ${wrangler} is missing EGL support")
 	endif()
 endif()
+
+include("$ENV{VITASDK}/share/vita.cmake" REQUIRED)
+set(VITA_MKSFOEX_FLAGS "${VITA_MKSFOEX_FLAGS} -d PARENTAL_LEVEL=1 -d ATTRIBUTE2=12")
+
+vita_create_self(eboot.bin arx)
+vita_create_vpk(arx-libertatis.vpk "ARX000001" eboot.bin
+		VERSION "01.00"
+		NAME "Arx Libertatis"
+		#FILE livearea/icon0.png sce_sys/icon0.png
+		#FILE livearea/bg.png sce_sys/livearea/contents/bg.png
+		#FILE livearea/template.xml sce_sys/livearea/contents/template.xml
+		)

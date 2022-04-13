@@ -1027,9 +1027,9 @@ void ArxGame::onWindowLostFocus(const Window & /* window */) {
 }
 
 void ArxGame::onResizeWindow(const Window & window) {
-	
+#ifndef __vita__
 	arx_assert(window.getSize() != Vec2i(0));
-	
+#endif
 	// A new window size will require a new backbuffer
 	// size, so the 3D structures must be changed accordingly.
 	m_wasResized = true;
