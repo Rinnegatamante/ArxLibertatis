@@ -46,6 +46,7 @@ class Thread {
 	pthread_t m_thread;
 	int m_priority;
 	bool m_started;
+    size_t m_stacksize;
 	
 	static void * entryPoint(void * param);
 	
@@ -61,7 +62,7 @@ class Thread {
 	
 public:
 	
-	Thread();
+	Thread(size_t stacksize = 0);
 	
 	virtual ~Thread();
 	
@@ -125,7 +126,9 @@ class StoppableThread : public Thread {
 	
 public:
 	
-	StoppableThread() : m_stopRequested(false) { }
+	StoppableThread(size_t stacksize = 0) : Thread(stacksize) {
+        m_stopRequested = false;
+    }
 	
 	void stop(Priority priority = Highest) {
 		m_stopRequested = true;

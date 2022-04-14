@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2021 Arx Libertatis Team (see the AUTHORS file)
+ * Copyright 2011-2012 Arx Libertatis Team (see the AUTHORS file)
  *
  * This file is part of Arx Libertatis.
  *
@@ -21,25 +21,12 @@
 
 #include <ctime>
 
-thread_local Random::Generator * Random::rng = nullptr;
+Random::Generator Random::rng;
 
 void Random::seed() {
-	if(!rng) {
-		rng = new Generator;
-	}
-	
-	rng->seed(size_t(std::time(nullptr)));
+    rng.seed((size_t)std::time(NULL));
 }
 
 void Random::seed(unsigned int seedVal) {
-	if(!rng) {
-		rng = new Generator;
-	}
-	
-	rng->seed(seedVal);
-}
-
-void Random::shutdown() {
-	delete rng;
-	rng = nullptr;
+    rng.seed(seedVal);
 }

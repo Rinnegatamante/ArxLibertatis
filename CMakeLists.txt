@@ -308,9 +308,15 @@ include(UseStaticLibs)
 set(ARX_LIBRARIES)
 set(BASE_LIBRARIES)
 
-list(APPEND ARX_LIBRARIES vitaGL vitashark mathneon SceCommonDialog_stub SceAudioIn_stub SceAudio_stub SceLibKernel_stub SceShaccCg_stub
-		SceNet_stub SceNetCtl_stub SceDisplay_stub SceGxm_stub SceHid_stub SceSysmodule_stub SceCtrl_stub SceTouch_stub
-		SceMotion_stub m SceAppMgr_stub SceAppUtil_stub ScePgf_stub jpeg SceRtc_stub ScePower_stub SceKernelDmacMgr_stub)
+#find_package(SDL2 REQUIRED)
+
+	set(ARX_HAVE_SDL2 1)
+	set(ARX_HAVE_SDL 1)
+list(APPEND ARX_LIBRARIES /usr/local/vitasdk/arm-vita-eabi/lib/libSDL2.a /usr/local/vitasdk/arm-vita-eabi/lib/libSDL2main.a FLAC vorbisfile vorbis mpg123 mikmod webp
+		jpeg freetype ogg png vitaGL vitashark mathneon SceCommonDialog_stub SceAudioIn_stub SceAudio_stub
+		SceLibKernel_stub SceShaccCg_stub SceNet_stub SceNetCtl_stub SceDisplay_stub SceGxm_stub SceHid_stub
+		SceSysmodule_stub SceCtrl_stub SceTouch_stub SceMotion_stub m SceAppMgr_stub SceAppUtil_stub ScePgf_stub
+		SceRtc_stub ScePower_stub SceKernelDmacMgr_stub)
 
 # Force re-checking libraries if the compiler or compiler flags change
 if((NOT LAST_CMAKE_CXX_FLAGS STREQUAL CMAKE_CXX_FLAGS)
@@ -486,14 +492,14 @@ if(NOT ARX_HAVE_SDL AND (NOT WITH_SDL OR WITH_SDL EQUAL 2))
 		set(SDL_OPTIONAL_DEPENDENCY ${OPTIONAL_DEPENDENCY})
 	endif()
 	set(SDL2_BUILDING_LIBRARY 1) # we don't need SDL2main!
-	find_package(SDL2 ${SDL_OPTIONAL_DEPENDENCY})
-	if(SDL2_FOUND)
-		if(NOT MSVC)
-			check_link_library(SDL2 SDL2_LIBRARIES)
-		endif()
-		set(ARX_HAVE_SDL2 1)
-		set(ARX_HAVE_SDL 1)
-	endif()
+	#find_package(SDL2 ${SDL_OPTIONAL_DEPENDENCY})
+	#if(SDL2_FOUND)
+		#if(NOT MSVC)
+		#	check_link_library(SDL2 SDL2_LIBRARIES)
+		#endif()
+	#	set(ARX_HAVE_SDL2 1)
+	#	set(ARX_HAVE_SDL 1)
+	#endif()
 endif()
 if(NOT ARX_HAVE_SDL AND (NOT WITH_SDL OR WITH_SDL EQUAL 1))
 	if(NOT MACOS)
@@ -1126,7 +1132,7 @@ set(INPUT_SOURCES
 	src/input/TextInput.cpp
 )
 set(INPUT_SDL1_SOURCES src/input/SDL1InputBackend.cpp)
-set(INPUT_SDL2_SOURCES src/input/SDL2InputBackend.cpp)
+set(INPUT_SDL2_SOURCES src/input/SDL2VitaInputBackend.cpp)
 
 set(IO_SOURCES
 	src/io/IniReader.cpp
@@ -1846,7 +1852,7 @@ endif()
 if(UNITY_BUILD)
 	unity_build()
 else()
-	shared_build()
+	separate_build()
 endif()
 
 if(BUILD_TESTS)

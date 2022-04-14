@@ -197,14 +197,14 @@ else(MSVC)
 		endif()
 	endif()
 	
-	if(USE_LTO)
-		add_cxxflag("-flto=auto")
-		if(NOT FLAG_FOUND)
-			add_cxxflag("-flto")
-		endif()
-		# TODO set CMAKE_INTERPROCEDURAL_OPTIMIZATION instead
-		add_ldflag("-fuse-linker-plugin")
-	endif()
+	#if(USE_LTO)
+	#	add_cxxflag("-flto=auto")
+	#	if(NOT FLAG_FOUND)
+	#		add_cxxflag("-flto")
+	#	endif()
+	#	# TODO set CMAKE_INTERPROCEDURAL_OPTIMIZATION instead
+	#	add_ldflag("-fuse-linker-plugin")
+	#endif()
 	
 	if(FASTLINK)
 		
@@ -219,9 +219,9 @@ else(MSVC)
 	elseif(SET_OPTIMIZATION_FLAGS)
 		
 		# Merge symbols and discard unused symbols
-		add_ldflag("-Wl,--gc-sections")
-		add_ldflag("-Wl,--icf=all")
-		add_cxxflag("-fmerge-all-constants")
+		#add_ldflag("-Wl,--gc-sections")
+		#add_ldflag("-Wl,--icf=all")
+		#add_cxxflag("-fmerge-all-constants")
 		
 	endif()
 	
@@ -484,7 +484,7 @@ else(MSVC)
 	
 endif(MSVC)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-optimize-sibling-calls -g -O2")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-optimize-sibling-calls -fno-pic -fsigned-char -fno-short-enums -g -O2")
 
 set(BUILD_TYPES ${CMAKE_CONFIGURATION_TYPES} ${CMAKE_BUILD_TYPE})
 list(REMOVE_DUPLICATES BUILD_TYPES)

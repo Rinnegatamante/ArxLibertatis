@@ -229,7 +229,8 @@ void OpenGLRenderer::initialize() {
 		}
 		#endif
 	}
-	
+
+#ifndef __vita__
 	if(gl.isES()) {
 		m_hasTextureNPOT = gl.has("GL_OES_texture_npot", 2, 0);
 		if(!m_hasTextureNPOT) {
@@ -247,7 +248,14 @@ void OpenGLRenderer::initialize() {
 		m_hasIntensityTextures = true;
 		m_hasBGRTextureTransfer = true;
 	}
-	
+#else
+    m_hasTextureNPOT = false;
+    m_hasSizedTextureFormats = false;
+    m_hasIntensityTextures = false;
+    m_hasBGRTextureTransfer = false;
+#endif
+
+#ifndef __vita__
 	// GL_EXT_texture_filter_anisotropic is available for both OpenGL ES and desktop OpenGL
 	if(gl.has("GL_ARB_texture_filter_anisotropic", 4, 6) || gl.has("GL_EXT_texture_filter_anisotropic")) {
 		GLfloat limit;
@@ -257,7 +265,11 @@ void OpenGLRenderer::initialize() {
 	} else {
 		m_maximumSupportedAnisotropy = 1.f;
 	}
-	
+#else
+    m_maximumSupportedAnisotropy = 1.f;
+#endif
+
+#ifndef __vita__
 	if(gl.isES()) {
 		// OES_draw_elements_base_vertex requires OpenGL ES 2.0
 		// EXT_draw_elements_base_vertex requires OpenGL ES 2.0
@@ -271,12 +283,12 @@ void OpenGLRenderer::initialize() {
 		}
 		m_hasDrawRangeElements = true; // Introduced in OpenGL 1.2
 	}
-
-#ifdef __vita__
-    m_hasDrawElementsBaseVertex = false;
+#else
     m_hasDrawRangeElements = false;
+    m_hasDrawElementsBaseVertex = true;
 #endif
-	
+
+#ifndef __vita__
 	if(gl.isES()) {
 		// EXT_map_buffer_range requires OpenGL ES 1.1
 		m_hasMapBufferRange = gl.is(3, 0) || gl.has("GL_EXT_map_buffer_range");
@@ -296,7 +308,12 @@ void OpenGLRenderer::initialize() {
 		}
 		m_hasMapBuffer = true; // Introduced in OpenGL 1.5
 	}
-	
+#else
+    m_hasMapBufferRange = true;
+    m_hasMapBuffer = true;
+#endif
+
+#ifndef __vita__
 	if(gl.isES()) {
 		// EXT_buffer_storage requires OpenGL ES 3.1
 		m_hasBufferStorage = gl.has("GL_EXT_buffer_storage");
@@ -305,20 +322,29 @@ void OpenGLRenderer::initialize() {
 		m_hasBufferStorage = gl.has("GL_ARB_buffer_storage", 4, 4);
 		m_hasBufferUsageStream = true; // Introduced in OpenGL 1.5
 	}
-	
+#else
+    m_hasBufferStorage = false;
+    m_hasBufferUsageStream = true; // Introduced in OpenGL 1.5
+#endif
+
+#ifndef __vita__
 	if(gl.isES()) {
 		m_hasClearDepthf = true;
 	} else {
 		m_hasClearDepthf = gl.has("GL_ARB_ES2_compatibility", 4, 1) || gl.has("GL_OES_single_precision");
 	}
-	
+#else
+    m_hasClearDepthf = true;
+#endif
+
+#ifndef __vita__
 	// Introduced in OpenGL 1.4, no extension available for OpenGL ES
 	m_hasVertexFogCoordinate = !gl.isES();
-#ifdef __vita__
+#else
     m_hasVertexFogCoordinate = false;
 #endif
 
-	
+#ifndef __vita__
 	if(gl.isES()) {
 		m_hasSampleShading = gl.has("GL_OES_sample_shading", 3, 2);
 	} else {
@@ -329,7 +355,11 @@ void OpenGLRenderer::initialize() {
 		m_hasSampleShading = gl.has("GL_ARB_sample_shading", 4, 0);
 		#endif
 	}
-	
+#else
+    m_hasSampleShading = false;
+#endif
+
+#ifndef __vita__
 	if(gl.isES()) {
 		m_hasFogx = true;
 		m_hasFogDistanceMode = false;
@@ -337,12 +367,15 @@ void OpenGLRenderer::initialize() {
 		m_hasFogx = false;
 		m_hasFogDistanceMode = gl.has("GL_NV_fog_distance");
 	}
-	
+#else
+    m_hasFogx = false;
+    m_hasFogDistanceMode = false;
+#endif
 }
 
 void OpenGLRenderer::beforeResize(bool wasOrIsFullscreen) {
 	
-#if ARX_PLATFORM == ARX_PLATFORM_LINUX || ARX_PLATFORM == ARX_PLATFORM_BSD || ARX_PLATFORM == ARX_PLATFORM_HAIKU
+#if ARX_PLATFORM == ARX_PLATFORM_LINUX || ARX_PLATFORM == ARX_PLATFORM_BSD || ARX_PLATFORM == ARX_PLATFORM_HAIKU || defined(__vita__)
 	// No re-initialization needed
 	ARX_UNUSED(wasOrIsFullscreen);
 #else
@@ -377,9 +410,9 @@ void OpenGLRenderer::reinit() {
 	arx_assert(!isInitialized());
 	
 	// Synchronize GL state cache
-	
-	m_MSAALevel = 0;
+
 #ifndef __vita__
+    m_MSAALevel = 0;
 	{
 		GLint buffers = 0;
 		glGetIntegerv(GL_SAMPLE_BUFFERS, &buffers);
@@ -392,6 +425,8 @@ void OpenGLRenderer::reinit() {
 	if(m_MSAALevel > 0) {
 		glDisable(GL_MULTISAMPLE);
 	}
+#else
+    m_MSAALevel = 4;
 #endif
 	m_hasMSAA = false;
 	
@@ -405,7 +440,7 @@ void OpenGLRenderer::reinit() {
 		glFogi(GL_FOG_MODE, GL_LINEAR);
 		if(m_hasFogDistanceMode) {
 			// TODO Support radial fogs once all vertices are provided in view-space coordinates
-#ifndef __vita__
+#ifdef GL_FOG_DISTANCE_MODE_NV
 			glFogi(GL_FOG_DISTANCE_MODE_NV, GL_EYE_PLANE);
 #endif
 		}
@@ -436,6 +471,7 @@ void OpenGLRenderer::reinit() {
 	
 	glEnable(GL_POLYGON_OFFSET_FILL);
 	m_glstate.setDepthOffset(0);
+    //a
 	
 	glEnable(GL_BLEND);
 	m_glstate.setBlend(BlendZero, BlendOne);
@@ -647,7 +683,7 @@ void OpenGLRenderer::Clear(BufferFlags bufferFlags, Color clearColor, float clea
 			glDepthMask(GL_TRUE);
 			m_glstate.setDepthWrite(true);
 		}
-		#ifdef GL_VERSION_4_1
+		#if defined(GL_VERSION_4_1) || defined(__vita__)
 		if(hasClearDepthf()) {
 			glClearDepthf(clearDepth);
 		}
@@ -874,23 +910,25 @@ void OpenGLRenderer::drawIndexed(Primitive primitive, const TexturedVertex * ver
 	bindBuffer(GL_NONE);
 	
 	setVertexArray(this, vertices, vertices);
-	
-	if(hasDrawRangeElements()) {
+
 #ifndef __vita__
+	if(hasDrawRangeElements()) {
 		glDrawRangeElements(arxToGlPrimitiveType[primitive], 0, nvertices - 1, nindices, GL_UNSIGNED_SHORT, indices);
-#endif
 	} else {
+#endif
 		glDrawElements(arxToGlPrimitiveType[primitive], nindices, GL_UNSIGNED_SHORT, indices);
+#ifndef __vita__
 	}
+#endif
 	
 }
 
 bool OpenGLRenderer::getSnapshot(Image & image) {
-	
+
 	Vec2i size = mainApp->getWindow()->getSize();
-	
+
 	image.create(size_t(size.x), size_t(size.y), Image::Format_R8G8B8);
-	
+
 	glReadPixels(0, 0, size.x, size.y, GL_RGB, GL_UNSIGNED_BYTE, image.getData());
 	
 	image.flipY();
@@ -899,7 +937,7 @@ bool OpenGLRenderer::getSnapshot(Image & image) {
 }
 
 bool OpenGLRenderer::getSnapshot(Image & image, size_t width, size_t height) {
-	
+
 	// TODO handle scaling on the GPU so we don't need to download the whole image
 	
 	Image fullsize;
@@ -983,29 +1021,30 @@ void OpenGLRenderer::flushState() {
 				}
 			}
 
-#ifndef __vita__
+
 			if(m_glsampleShading && alphaTest != TestSS) {
+#ifdef GL_SAMPLE_SHADING_ARB
 				glDisable(GL_SAMPLE_SHADING_ARB);
+#endif
 				m_glsampleShading = false;
 			} else if(!m_glsampleShading && alphaTest == TestSS) {
+#ifdef GL_SAMPLE_SHADING_ARB
 				glEnable(GL_SAMPLE_SHADING_ARB);
+#endif
 				m_glsampleShading = true;
 			}
-#else
-            m_glsampleShading = false;
-#endif
 
-#ifndef __vita__
 			if(m_glalphaToCoverage && alphaTest != TestA2C) {
+#ifdef GL_SAMPLE_ALPHA_TO_COVERAGE
 				glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+#endif
 				m_glalphaToCoverage = false;
 			} else if(!m_glalphaToCoverage && alphaTest == TestA2C) {
+#ifdef GL_SAMPLE_ALPHA_TO_COVERAGE
 				glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+#endif
 				m_glalphaToCoverage = true;
 			}
-#else
-            m_glalphaToCoverage = false;
-#endif
 			
 			if(alphaTest == TestNone) {
 				if(m_glalphaFunc >= 0.f) {

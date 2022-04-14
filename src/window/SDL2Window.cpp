@@ -45,14 +45,14 @@
 #if ARX_PLATFORM != ARX_PLATFORM_WIN32
 #define SDL_PROTOTYPES_ONLY 1
 #endif
-#include <SDL_syswm.h>
+#include <SDL2/SDL_syswm.h>
 
 #include "core/Config.h"
 #include "core/Version.h"
 #include "gui/Credits.h"
 #include "graphics/opengl/GLDebug.h"
 #include "graphics/opengl/OpenGLRenderer.h"
-#include "input/SDL2InputBackend.h"
+#include "input/SDL2VitaInputBackend.h"
 #include "io/log/Logger.h"
 #include "math/Rectangle.h"
 #include "platform/CrashHandler.h"
@@ -92,10 +92,12 @@ SDL2Window::~SDL2Window() {
 	if(m_renderer) {
 		delete m_renderer, m_renderer = nullptr;
 	}
-	
+
+#ifndef __vita__
 	if(m_glcontext) {
 		SDL_GL_DeleteContext(m_glcontext);
 	}
+#endif
 	
 	if(m_window) {
 		restoreGamma();
@@ -178,12 +180,29 @@ bool SDL2Window::initializeFramework() {
 	};
 	platform::EnvironmentLock environment(overrrides);
 	#endif
-	
+
+#ifndef __vita__
 	if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS) < 0) {
 		LogError << "Failed to initialize SDL: " << SDL_GetError();
 		return false;
 	}
-	
+#else
+    if(SDL_Init(SDL_INIT_GAMECONTROLLER | SDL_INIT_JOYSTICK | SDL_INIT_EVENTS) < 0) {
+		LogError << "Failed to initialize SDL: " << SDL_GetError();
+		return false;
+	}
+
+    //if (SDL_NumJoysticks() > 0) {
+    //    SDL_JoystickOpen(0);
+    //    SDL_GameControllerOpen(0);
+    //}
+
+    // VITA: Touch events will not generate mouse events
+    SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0");
+
+    vglInitWithCustomThreshold(0, 960, 544, 12 * 1024 * 1024, 0, 0, 0, SCE_GXM_MULTISAMPLE_4X);
+#endif
+
 	SDL_version ver;
 	SDL_GetVersion(&ver);
 	std::ostringstream runtimeVersion;
@@ -205,7 +224,8 @@ bool SDL2Window::initializeFramework() {
 		#endif
 	}
 	#endif
-	
+
+#ifndef __vita__
 	int ndisplays = SDL_GetNumVideoDisplays();
 	for(int display = 0; display < ndisplays; display++) {
 		int modes = SDL_GetNumDisplayModes(display);
@@ -220,6 +240,9 @@ bool SDL2Window::initializeFramework() {
 	std::sort(m_displayModes.begin(), m_displayModes.end());
 	m_displayModes.erase(std::unique(m_displayModes.begin(), m_displayModes.end()),
 	                     m_displayModes.end());
+#else
+    m_displayModes.push_back(DisplayMode(Vec2i(960, 544), 60));
+#endif
 	
 	s_mainWindow = this;
 	
@@ -230,6 +253,28 @@ bool SDL2Window::initializeFramework() {
 	SDL_EventState(SDL_DROPFILE,    SDL_ENABLE);
 	SDL_EventState(SDL_SYSWMEVENT,  SDL_IGNORE);
 	SDL_EventState(SDL_USEREVENT,   SDL_IGNORE);
+
+    SDL_EventState(SDL_USEREVENT,   SDL_IGNORE);
+#ifdef __vita__
+    // have to set these BEFORE the window is created?
+	SDL_EventState(SDL_KEYDOWN, SDL_ENABLE);
+	SDL_EventState(SDL_KEYUP, SDL_ENABLE);
+	SDL_EventState(SDL_TEXTINPUT, SDL_DISABLE);
+	SDL_EventState(SDL_TEXTEDITING, SDL_DISABLE);
+	#if SDL_VERSION_ATLEAST(2, 0, 5)
+	SDL_EventState(SDL_DROPTEXT, SDL_ENABLE);
+	#endif
+	SDL_EventState(SDL_MOUSEMOTION, SDL_ENABLE);
+	SDL_EventState(SDL_MOUSEBUTTONDOWN, SDL_ENABLE);
+	SDL_EventState(SDL_MOUSEBUTTONUP, SDL_ENABLE);
+	SDL_EventState(SDL_CONTROLLERBUTTONDOWN, SDL_ENABLE);
+	SDL_EventState(SDL_CONTROLLERBUTTONUP, SDL_ENABLE);
+	SDL_EventState(SDL_CONTROLLERAXISMOTION, SDL_ENABLE);
+	SDL_EventState(SDL_FINGERDOWN, SDL_ENABLE);
+	SDL_EventState(SDL_FINGERUP, SDL_ENABLE);
+	SDL_EventState(SDL_FINGERMOTION, SDL_ENABLE);
+	SDL_GameControllerEventState(SDL_ENABLE);
+#endif
 	
 	return true;
 }
@@ -237,7 +282,8 @@ bool SDL2Window::initializeFramework() {
 static Uint32 getSDLFlagsForMode(const Vec2i & size, bool fullscreen) {
 	
 	Uint32 flags = 0;
-	
+
+#ifndef __vita__
 	if(fullscreen) {
 		if(size == Vec2i(0)) {
 			flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
@@ -245,6 +291,9 @@ static Uint32 getSDLFlagsForMode(const Vec2i & size, bool fullscreen) {
 			flags |= SDL_WINDOW_FULLSCREEN;
 		}
 	}
+#else
+    flags |= SDL_WINDOW_FULLSCREEN;
+#endif
 	
 	return flags;
 }
@@ -253,6 +302,7 @@ int SDL2Window::createWindowAndGLContext(const char * profile) {
 	
 	int x = SDL_WINDOWPOS_UNDEFINED, y = SDL_WINDOWPOS_UNDEFINED;
 	Uint32 windowFlags = getSDLFlagsForMode(m_mode.resolution, m_fullscreen);
+#ifndef __vita__
 	windowFlags |= SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN;
 	
 	for(int msaa = m_maxMSAALevel; true; msaa--) {
@@ -355,15 +405,27 @@ int SDL2Window::createWindowAndGLContext(const char * profile) {
 		
 		return std::max(msaa, 1);
 	}
-	
+#else
+    windowFlags |= SDL_WINDOW_HIDDEN;
+
+    m_window = SDL_CreateWindow(m_title.c_str(), x, y, m_mode.resolution.x, m_mode.resolution.y, windowFlags);
+    if(!m_window) {
+        LogError << "Could not create window: " << SDL_GetError();
+        return 0;
+    }
+
+    return 4; // MSAA4x
+#endif
 }
 
 bool SDL2Window::initialize() {
 	
 	arx_assert(!m_displayModes.empty());
-	
+
+#ifndef __vita__
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-	
+#endif
+
 	#if ARX_PLATFORM == ARX_PLATFORM_WIN32
 	// Used on Windows to prevent software opengl fallback.
 	// The linux situation:
@@ -379,6 +441,7 @@ bool SDL2Window::initialize() {
 	gldebug::Mode debugMode = gldebug::mode();
 	
 	int samples = 0;
+#ifndef __vita__
 	for(int api = 0; api < 2 && samples == 0; api++) {
 		bool first = (api == 0);
 		
@@ -449,7 +512,10 @@ bool SDL2Window::initialize() {
 			LogError << "Unknown renderer: " << config.video.renderer;
 		}
 	}
-	
+#else
+    samples = createWindowAndGLContext("OpenGL ES");
+#endif
+
 	if(samples == 0) {
 		return false;
 	}
@@ -530,7 +596,8 @@ bool SDL2Window::initialize() {
 				#endif
 			}
 		}
-		
+
+#ifndef __vita__
 		int red = 0, green = 0, blue = 0, alpha = 0, depth = 0, doublebuffer = 0;
 		SDL_GL_GetAttribute(SDL_GL_RED_SIZE, &red);
 		SDL_GL_GetAttribute(SDL_GL_GREEN_SIZE, &green);
@@ -541,6 +608,7 @@ bool SDL2Window::initialize() {
 		LogInfo << "Window: " << windowSystem << " r:" << red << " g:" << green << " b:" << blue
 		        << " a:" << alpha << " depth:" << depth << " aa:" << samples << "x"
 		        << " doublebuffer:" << doublebuffer;
+#endif
 	}
 	
 	// Use the executable icon for the window
@@ -607,24 +675,29 @@ void SDL2Window::setTitle(const std::string & title) {
 }
 
 bool SDL2Window::setVSync(int vsync) {
+#ifndef __vita__
 	if(m_window && SDL_GL_SetSwapInterval(vsync) != 0) {
 		if(vsync != 0 && vsync != 1) {
 			return setVSync(1);
 		}
 		return false;
 	}
+#endif
 	m_vsync = vsync;
 	return true;
 }
 
 void SDL2Window::restoreGamma() {
 	if(m_gammaOverridden) {
+#ifndef __vita__
 		SDL_SetWindowGammaRamp(m_window, m_gammaRed, m_gammaGreen, m_gammaBlue);
+#endif
 		m_gammaOverridden = false;
 	}
 }
 
 bool SDL2Window::setGamma(float gamma) {
+#ifndef __vita__
 	if(m_window && m_fullscreen) {
 		if(!m_gammaOverridden) {
 			m_gammaOverridden = (SDL_GetWindowGammaRamp(m_window, m_gammaRed, m_gammaGreen, m_gammaBlue) == 0);
@@ -633,12 +706,15 @@ bool SDL2Window::setGamma(float gamma) {
 			return false;
 		}
 	}
+#endif
 	m_gamma = gamma;
 	return true;
 }
 
 void SDL2Window::changeMode(DisplayMode mode, bool fullscreen) {
-	
+#ifdef __vita__
+    return;
+#else
 	if(!m_window) {
 		m_mode = mode;
 		m_fullscreen = fullscreen;
@@ -704,6 +780,7 @@ void SDL2Window::changeMode(DisplayMode mode, bool fullscreen) {
 	}
 	
 	processEvents(false);
+#endif
 }
 
 void SDL2Window::updateSize(bool force) {
@@ -849,7 +926,11 @@ void SDL2Window::processEvents(bool waitForEvent) {
 
 void SDL2Window::showFrame() {
 	ARX_PROFILE_FUNC();
+#ifndef __vita__
 	SDL_GL_SwapWindow(m_window);
+#else
+    vglSwapBuffers(GL_FALSE);
+#endif
 }
 
 void SDL2Window::hide() {

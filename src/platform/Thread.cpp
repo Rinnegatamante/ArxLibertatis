@@ -41,8 +41,6 @@
 #include ARX_INCLUDED_CPUID_H
 #endif
 
-#include "math/Random.h"
-
 #include "platform/Alignment.h"
 #include "platform/CrashHandler.h"
 #include "platform/Platform.h"
@@ -66,11 +64,12 @@ void Thread::setThreadName(std::string_view threadName) {
 #include <pthread_np.h>
 #endif
 
-Thread::Thread()
+Thread::Thread(size_t stacksize)
 	: m_thread()
 	, m_priority()
 	, m_started(false)
 {
+    m_stacksize = stacksize;
 	setPriority(Normal);
 }
 
@@ -86,6 +85,10 @@ void Thread::start() {
 	sched_param param;
 	param.sched_priority = m_priority;
 	pthread_attr_setschedparam(&attr, &param);
+    if (m_stacksize > 0) {
+        fprintf(stderr, "Creating thread with stacksize %zu\n", m_stacksize);
+        pthread_attr_setstacksize(&attr, m_stacksize);
+    }
 	
 	pthread_create(&m_thread, &attr, entryPoint, this);
 	
@@ -154,14 +157,11 @@ void * Thread::entryPoint(void * param) {
 	#pragma message ( "No function available to set thread names!" )
 	#endif
 	
-	Random::seed();
 	CrashHandler::registerThreadCrashHandlers();
 	profiler::registerThread(thread.m_threadName);
 	thread.run();
 	profiler::unregisterThread();
 	CrashHandler::unregisterThreadCrashHandlers();
-	Random::shutdown();
-	
 	return nullptr;
 }
 
@@ -268,14 +268,11 @@ DWORD WINAPI Thread::entryPoint(LPVOID param) {
 		
 	}
 	
-	Random::seed();
 	CrashHandler::registerThreadCrashHandlers();
 	profiler::registerThread(static_cast<Thread *>(param)->m_threadName);
 	static_cast<Thread *>(param)->run();
 	profiler::unregisterThread();
 	CrashHandler::unregisterThreadCrashHandlers();
-	Random::shutdown();
-	
 	return 0;
 }
 

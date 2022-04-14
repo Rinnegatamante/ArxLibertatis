@@ -35,7 +35,7 @@
 #endif
 
 #if ARX_HAVE_SDL2
-#include <SDL.h>
+#include <SDL2/SDL.h>
 #endif
 
 #include "core/Version.h"

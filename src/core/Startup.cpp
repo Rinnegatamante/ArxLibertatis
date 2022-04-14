@@ -78,13 +78,12 @@
 #endif
 
 #ifdef __vita__
-unsigned int _newlib_heap_size_user = 225 * 1024 * 1024;
+unsigned int _newlib_heap_size_user = 240 * 1024 * 1024;
 #include <psp2/power.h>
 #include <psp2/sysmodule.h>
 #endif
 
 int utf8_main(int argc, char ** argv) {
-
 #ifdef __vita__
     //sceSysmoduleLoadModule((SceSysmoduleModuleId)9);
 
@@ -190,7 +189,7 @@ int utf8_main(int argc, char ** argv) {
 	
 	CrashHandler::shutdown();
 	
-	Random::shutdown();
+	//Random::shutdown();
 	
 	return (status == ExitFailure) ? EXIT_FAILURE : EXIT_SUCCESS;
 }

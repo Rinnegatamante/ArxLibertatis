@@ -20,7 +20,7 @@
 #ifndef ARX_WINDOW_SDL2WINDOW_H
 #define ARX_WINDOW_SDL2WINDOW_H
 
-#include <SDL.h>
+#include <SDL2/SDL.h>
 
 #include "platform/Platform.h"
 #include "window/RenderWindow.h"

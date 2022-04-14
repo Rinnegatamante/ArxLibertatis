@@ -187,14 +187,12 @@ public:
 				#else
 				glDrawRangeElementsBaseVertex(mode, 0, count - 1, nbindices, type, const_cast<void *>(data), offset);
 				#endif
-			} else {
-				#if !ARX_HAVE_GLEW || defined(__vita__)
-				glDrawElementsBaseVertex(mode, nbindices, type, data, offset);
-				#else
-				glDrawElementsBaseVertex(mode, nbindices, type, const_cast<void *>(data), offset);
-				#endif
 			}
+            else
 #endif
+            {
+				glDrawElementsBaseVertex(mode, nbindices, type, data, offset); //x
+			}
 		} else {
 			
 			if(offset != 0) {
